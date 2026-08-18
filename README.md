@@ -2,35 +2,61 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### Local Development
+
+First, copy `.env.local` to `.env` or configure it directly, then run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Docker Compose (Quick Start)
 
-## Learn More
+Untuk memasang dan menjalankan aplikasi beserta database PostgreSQL lokal secara cepat menggunakan Docker Compose, Anda hanya perlu menjalankan satu perintah.
 
-To learn more about Next.js, take a look at the following resources:
+#### Prasyarat
+Pastikan Anda sudah menginstal:
+- [Docker](https://www.docker.com/products/docker-desktop/)
+- Docker Compose
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### Langkah Menjalankan
+1. Di direktori root proyek, jalankan perintah berikut:
+   ```bash
+   docker-compose up --build -d
+   ```
+2. Docker akan secara otomatis:
+   - Membuat container database PostgreSQL (`daily_report_db`).
+   - Melakukan healthcheck untuk memastikan database sudah siap menerima koneksi.
+   - Membangun image Next.js (`daily_report_web`).
+   - Menjalankan migrasi Prisma database secara otomatis (`npx prisma migrate deploy`).
+   - Memasukkan data awal uji coba (seeding) otomatis (`npx prisma db seed`).
+   - Menjalankan aplikasi pada port `3000`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. Buka [http://localhost:3000](http://localhost:3000) di browser Anda.
 
-## Deploy on Vercel
+#### Data Login Uji Coba (Seed)
+Aplikasi sudah terisi data akun awal yang siap pakai setelah proses *seeding* selesai:
+- **Manager/Admin**:
+  - Email: `admin@demo.com`
+  - Password: `password123`
+- **Karyawan 1**:
+  - Email: `user@demo.com`
+  - Password: `password123`
+- **Karyawan 2**:
+  - Email: `user2@demo.com`
+  - Password: `password123`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+#### Mematikan Layanan
+Untuk menghentikan dan menghapus container yang sedang berjalan:
+```bash
+docker-compose down
+```
+Untuk menghentikan dan menghapus data database yang tersimpan di volume:
+```bash
+docker-compose down -v
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
