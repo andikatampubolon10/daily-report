@@ -119,7 +119,7 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-8 text-center text-xs text-slate-400">
-          Untuk demo, gunakan email admin@demo.com atau user@demo.com
+          Untuk demo, gunakan email admin@demo.com atau user1@demo.com
         </div>
       </div>
     </div>
