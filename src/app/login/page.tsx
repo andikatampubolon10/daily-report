@@ -47,9 +47,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mb-4">
-            <FileText className="w-6 h-6 text-white" />
-          </div>
+
           <h1 className="text-2xl font-bold text-slate-900">Masuk ke Akun</h1>
           <p className="text-sm text-slate-500 mt-1 text-center">
             Dashboard Laporan Harian
@@ -118,9 +116,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-8 text-center text-xs text-slate-400">
-          Untuk demo, gunakan email admin@demo.com atau user1@demo.com
-        </div>
+
       </div>
     </div>
   );
