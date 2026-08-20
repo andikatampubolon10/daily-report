@@ -37,7 +37,7 @@ export default function Navbar({ name, email }: { name: string; email: string })
     .toUpperCase();
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 sticky top-0 z-10">
+    <header className="h-20 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 sticky top-0 z-10">
       {/* Left side (could be page title or breadcrumbs, empty for now to match layout) */}
       <div></div>
 
@@ -45,9 +45,13 @@ export default function Navbar({ name, email }: { name: string; email: string })
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center gap-2 focus:outline-none hover:bg-slate-50 p-1.5 rounded-full transition-colors"
+          className="flex items-center gap-2.5 focus:outline-none hover:bg-slate-100 px-3 py-2 rounded-xl transition-colors"
         >
-          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+          <div className="text-right hidden sm:block">
+            <p className="text-sm font-semibold text-slate-800 leading-tight">{name}</p>
+            <p className="text-xs text-slate-400 leading-tight mt-0.5">{email}</p>
+          </div>
+          <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
             {initials}
           </div>
         </button>

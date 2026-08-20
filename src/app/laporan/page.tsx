@@ -45,8 +45,8 @@ export default function LaporanPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Laporan Saya</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-3xl font-bold text-slate-900">Laporan Saya</h1>
+          <p className="text-base text-slate-500 mt-1">
             Lihat dan kelola semua laporan harian yang pernah Anda buat.
           </p>
         </div>

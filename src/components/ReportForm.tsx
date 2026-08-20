@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition, useId } from "react";
+import { useState, useTransition, useId, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { CreateReportInput } from "@/types/report";
-import { AlertCircle, Loader2, CheckCircle } from "lucide-react";
+import { AlertCircle, Loader2, CheckCircle, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -21,6 +21,22 @@ function getTodayDate(): string {
   return new Date().toISOString().split("T")[0];
 }
 
+/** Konversi yyyy-mm-dd → dd/mm/yyyy untuk tampilan */
+function isoToDisplay(iso: string): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+/** Konversi dd/mm/yyyy → yyyy-mm-dd untuk internal */
+function displayToIso(display: string): string {
+  const parts = display.replace(/[^\d/]/g, "").split("/");
+  if (parts.length === 3 && parts[2].length === 4) {
+    return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+  }
+  return "";
+}
+
 export default function ReportForm({
   initialName = "",
   initialEmail = "",
@@ -33,6 +49,8 @@ export default function ReportForm({
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [noBlocker, setNoBlocker] = useState(false);
+  const [displayDate, setDisplayDate] = useState<string>(isoToDisplay(getTodayDate()));
+  const hiddenDateRef = useRef<HTMLInputElement>(null);
   const id = useId();
 
   const [formData, setFormData] = useState<CreateReportInput>({
@@ -169,20 +187,59 @@ export default function ReportForm({
           >
             Tanggal
           </label>
-          <input
-            id={`${id}-date`}
-            name="date"
-            type="date"
-            value={formData.date}
-            onChange={handleChange}
-            aria-required="true"
-            aria-invalid={!!errors.date}
-            aria-describedby={errors.date ? `${id}-date-error` : undefined}
-            className={cn(
-              inputBase,
-              errors.date ? "border-red-300 focus:ring-red-400" : "border-slate-300 hover:border-slate-400"
-            )}
-          />
+          <div className="relative flex items-center">
+            <input
+              id={`${id}-date`}
+              name="date"
+              type="text"
+              inputMode="numeric"
+              value={displayDate}
+              onChange={(e) => {
+                let val = e.target.value;
+                val = val.replace(/[^\d/]/g, "");
+                if (val.length === 2 && displayDate.length === 1) val += "/";
+                if (val.length === 5 && displayDate.length === 4) val += "/";
+                setDisplayDate(val);
+                const iso = displayToIso(val);
+                setFormData((prev) => ({ ...prev, date: iso }));
+                if (errors.date) setErrors((prev) => ({ ...prev, date: undefined }));
+              }}
+              placeholder="dd/mm/yyyy"
+              maxLength={10}
+              aria-required="true"
+              aria-invalid={!!errors.date}
+              aria-describedby={errors.date ? `${id}-date-error` : undefined}
+              className={cn(
+                inputBase,
+                "pr-10",
+                errors.date ? "border-red-300 focus:ring-red-400" : "border-slate-300 hover:border-slate-400"
+              )}
+            />
+            {/* Tombol kalender */}
+            <button
+              type="button"
+              onClick={() => hiddenDateRef.current?.showPicker()}
+              className="absolute right-2.5 text-slate-400 hover:text-blue-600 transition-colors"
+              aria-label="Buka kalender"
+            >
+              <CalendarDays className="w-4 h-4" />
+            </button>
+            {/* Hidden date picker — digunakan oleh tombol kalender */}
+            <input
+              ref={hiddenDateRef}
+              type="date"
+              value={formData.date}
+              onChange={(e) => {
+                const iso = e.target.value;
+                setFormData((prev) => ({ ...prev, date: iso }));
+                setDisplayDate(isoToDisplay(iso));
+                if (errors.date) setErrors((prev) => ({ ...prev, date: undefined }));
+              }}
+              className="absolute inset-0 opacity-0 w-0 h-0 pointer-events-none"
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+          </div>
           {errors.date && (
             <p id={`${id}-date-error`} role="alert" className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -262,7 +319,7 @@ export default function ReportForm({
             htmlFor={`${id}-today_work`}
             className="block text-sm font-medium text-slate-700 mb-1.5"
           >
-            Work Today
+            Pekerjaan Hari Ini
           </label>
           <textarea
             id={`${id}-today_work`}
@@ -294,7 +351,7 @@ export default function ReportForm({
             htmlFor={`${id}-tomorrow_plan`}
             className="block text-sm font-medium text-slate-700 mb-1.5"
           >
-            Plan Tomorrow
+            Rencana Besok
           </label>
           <textarea
             id={`${id}-tomorrow_plan`}
@@ -328,8 +385,7 @@ export default function ReportForm({
             htmlFor={`${id}-blocker`}
             className="text-sm font-medium text-slate-700"
           >
-            Blocker{" "}
-            <span className="text-slate-500 font-normal">(Kendala)</span>
+            Kendala
           </label>
           {/* No blocker checkbox */}
           <label
@@ -343,7 +399,7 @@ export default function ReportForm({
               onChange={handleNoBlockerChange}
               className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
             />
-            Tidak ada blocker
+            Tidak ada kendala
           </label>
         </div>
         <textarea
