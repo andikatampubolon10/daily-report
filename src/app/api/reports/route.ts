@@ -43,9 +43,13 @@ export async function GET(request: Request) {
       emailParam = userEmail;
     }
 
-    const whereClause: { date?: Date; email?: string } = {};
+    const whereClause: {
+      date?: Date;
+      email?: { contains: string; mode: "insensitive" };
+    } = {};
     if (dateParam) whereClause.date = new Date(dateParam);
-    if (emailParam) whereClause.email = emailParam;
+    if (emailParam)
+      whereClause.email = { contains: emailParam, mode: "insensitive" };
 
     const reports = await prisma.dailyReport.findMany({
       where: whereClause,

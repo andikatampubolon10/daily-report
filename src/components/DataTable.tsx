@@ -1,17 +1,44 @@
+"use client";
+
+import { useState } from "react";
 import { DailyReport } from "@/types/report";
 import { formatDate, hasBlocker } from "@/lib/utils";
-import { AlertTriangle, CheckCircle, ExternalLink } from "lucide-react";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { ChevronLeft, ChevronRight, FileSearch } from "lucide-react";
+import ReportDetailModal from "./ReportDetailModal";
 
 interface DataTableProps {
   reports: DailyReport[];
+  totalCount?: number;
+  rangeStart?: number;
+  rangeEnd?: number;
+  page?: number;
+  totalPages?: number;
+  onPrevPage?: () => void;
+  onNextPage?: () => void;
 }
 
-export default function DataTable({ reports }: DataTableProps) {
-  if (reports.length === 0) {
+export default function DataTable({
+  reports,
+  totalCount,
+  rangeStart,
+  rangeEnd,
+  page = 1,
+  totalPages = 1,
+  onPrevPage,
+  onNextPage,
+}: DataTableProps) {
+  const [selectedReport, setSelectedReport] = useState<DailyReport | null>(null);
+
+  // When pagination props are not provided, show all reports without pagination UI
+  const showPagination =
+    totalCount !== undefined &&
+    rangeStart !== undefined &&
+    rangeEnd !== undefined;
+  const effectiveTotalCount = totalCount ?? reports.length;
+  if (effectiveTotalCount === 0) {
     return (
-      <div className="text-center py-16 bg-white rounded-xl border border-slate-200">
+      <div className="text-center py-20 bg-white rounded-xl border border-slate-200 shadow-sm">
+        <FileSearch className="w-10 h-10 text-slate-300 mx-auto mb-3" />
         <p className="text-slate-500 font-medium">Belum ada laporan.</p>
         <p className="text-sm text-slate-400 mt-1">
           Laporan akan muncul di sini setelah dikirimkan.
@@ -23,25 +50,25 @@ export default function DataTable({ reports }: DataTableProps) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-base">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">
+            <tr className="border-b border-slate-200 bg-slate-50">
+              <th className="text-left px-5 py-4 text-sm font-semibold text-slate-700 whitespace-nowrap">
                 Tanggal
               </th>
-              <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">
+              <th className="text-left px-5 py-4 text-sm font-semibold text-slate-700 whitespace-nowrap">
                 Nama
               </th>
-              <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap hidden lg:table-cell">
+              <th className="text-left px-5 py-4 text-sm font-semibold text-slate-700 whitespace-nowrap hidden lg:table-cell">
                 Email
               </th>
-              <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap hidden md:table-cell">
+              <th className="text-left px-5 py-4 text-sm font-semibold text-slate-700 whitespace-nowrap hidden md:table-cell">
                 Pekerjaan Hari Ini
               </th>
-              <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">
-                Status
+              <th className="text-left px-5 py-4 text-sm font-semibold text-slate-700 whitespace-nowrap">
+                Blocker
               </th>
-              <th className="text-left px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">
+              <th className="text-right px-5 py-4 text-sm font-semibold text-slate-700 whitespace-nowrap">
                 Aksi
               </th>
             </tr>
@@ -54,49 +81,57 @@ export default function DataTable({ reports }: DataTableProps) {
                   key={report.id}
                   className="hover:bg-slate-50 transition-colors"
                 >
-                  <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                  {/* Date */}
+                  <td className="px-5 py-4 text-slate-600 whitespace-nowrap text-base">
                     {formatDate(report.date)}
                   </td>
-                  <td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
+
+                  {/* Name */}
+                  <td className="px-5 py-4 font-semibold text-slate-900 whitespace-nowrap text-base">
                     {report.name}
                   </td>
-                  <td className="px-4 py-3 text-slate-500 hidden lg:table-cell">
+
+                  {/* Email */}
+                  <td className="px-5 py-4 text-slate-500 hidden lg:table-cell text-base">
                     {report.email}
                   </td>
-                  <td className="px-4 py-3 text-slate-600 max-w-xs hidden md:table-cell">
+
+                  {/* Today work */}
+                  <td className="px-5 py-4 text-slate-600 max-w-xs hidden md:table-cell text-base">
                     <p className="truncate">{report.today_work}</p>
                   </td>
-                  <td className="px-4 py-3">
+
+                  {/* Blocker — dot + label */}
+                  <td className="px-5 py-3.5">
                     {blocker ? (
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5",
-                          "bg-red-50 text-red-700 border border-red-200"
-                        )}
-                      >
-                        <AlertTriangle className="w-3 h-3" aria-hidden="true" />
-                        <span>Ada Blocker</span>
+                      <span className="inline-flex items-center gap-1.5 text-sm">
+                        <span
+                          className="w-2 h-2 rounded-full bg-red-500 shrink-0"
+                          aria-hidden="true"
+                        />
+                        <span className="text-red-600 font-medium">
+                          Ada Blocker
+                        </span>
                       </span>
                     ) : (
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5",
-                          "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        )}
-                      >
-                        <CheckCircle className="w-3 h-3" aria-hidden="true" />
-                        <span>Lancar</span>
+                      <span className="inline-flex items-center gap-1.5 text-sm">
+                        <span
+                          className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"
+                          aria-hidden="true"
+                        />
+                        <span className="text-slate-600">Lancar</span>
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/laporan/${report.id}`}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+
+                  {/* Action */}
+                  <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                    <button
+                      onClick={() => setSelectedReport(report)}
+                      className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
                     >
-                      Detail
-                      <ExternalLink className="w-3 h-3" />
-                    </Link>
+                      Detail →
+                    </button>
                   </td>
                 </tr>
               );
@@ -104,6 +139,47 @@ export default function DataTable({ reports }: DataTableProps) {
           </tbody>
         </table>
       </div>
+
+      {/* Footer — count + pagination (only when pagination props are provided) */}
+      {showPagination && (
+        <div className="flex items-center justify-between px-5 py-3.5 border-t border-slate-100 bg-white">
+          <p className="text-xs text-slate-500">
+            Menampilkan{" "}
+            <span className="font-semibold text-slate-700">
+              {rangeStart}–{rangeEnd}
+            </span>{" "}
+            dari{" "}
+            <span className="font-semibold text-slate-700">{effectiveTotalCount}</span>{" "}
+            laporan
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onPrevPage}
+              disabled={page <= 1}
+              aria-label="Halaman sebelumnya"
+              className="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={onNextPage}
+              disabled={page >= totalPages}
+              aria-label="Halaman berikutnya"
+              className="p-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <ReportDetailModal
+        isOpen={!!selectedReport}
+        onClose={() => setSelectedReport(null)}
+        report={selectedReport}
+      />
     </div>
   );
 }

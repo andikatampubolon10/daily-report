@@ -3,7 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import DataTable from "@/components/DataTable";
 import { DailyReport } from "@/types/report";
-import { Users, Search, RefreshCw, AlertTriangle } from "lucide-react";
+import { RefreshCw, AlertTriangle, Search, ChevronDown } from "lucide-react";
+
+const PAGE_SIZE = 10;
+
+type BlockerFilter = "all" | "blocker" | "no-blocker";
 
 export default function MonitoringPage() {
   const [reports, setReports] = useState<DailyReport[]>([]);
@@ -11,6 +15,8 @@ export default function MonitoringPage() {
   const [error, setError] = useState<string | null>(null);
   const [filterDate, setFilterDate] = useState("");
   const [filterEmail, setFilterEmail] = useState("");
+  const [filterBlocker, setFilterBlocker] = useState<BlockerFilter>("all");
+  const [page, setPage] = useState(1);
 
   const fetchReports = useCallback(async () => {
     setLoading(true);
@@ -28,6 +34,7 @@ export default function MonitoringPage() {
         return;
       }
       setReports(data.data);
+      setPage(1);
     } catch {
       setError("Gagal terhubung ke server.");
     } finally {
@@ -39,58 +46,113 @@ export default function MonitoringPage() {
     fetchReports();
   }, [fetchReports]);
 
+  // Client-side blocker filter
+  const filteredReports = reports.filter((r) => {
+    if (filterBlocker === "all") return true;
+    const noBlockerKeywords = ["tidak ada", "none", "no blocker", "-"];
+    const isBlocker = !noBlockerKeywords.some((kw) =>
+      r.blocker.toLowerCase().includes(kw)
+    );
+    return filterBlocker === "blocker" ? isBlocker : !isBlocker;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredReports.length / PAGE_SIZE));
+  const paginatedReports = filteredReports.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
+
+  const handleReset = () => {
+    setFilterDate("");
+    setFilterEmail("");
+    setFilterBlocker("all");
+    setPage(1);
+  };
+
+  const rangeStart = filteredReports.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(page * PAGE_SIZE, filteredReports.length);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center">
-          <Users className="w-5 h-5 text-slate-600" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Semua Laporan</h1>
-          <p className="text-sm text-slate-500">
-            Pantau laporan harian seluruh anggota tim.
-          </p>
-        </div>
+      {/* Page Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900">Semua Laporan</h1>
+        <p className="text-base text-blue-600 mt-2">
+          Pantau laporan harian seluruh anggota tim.
+        </p>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-        <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-          <Search className="w-4 h-4 text-slate-400" />
-          Filter
-        </p>
-        <div className="flex flex-wrap gap-3">
+      {/* Filter Bar */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4">
+        <div className="flex flex-wrap items-end gap-4">
+          {/* Date */}
           <div className="flex flex-col gap-1">
-            <label htmlFor="monitoring-filter-date" className="text-xs font-medium text-slate-500">
+            <label
+              htmlFor="monitoring-filter-date"
+              className="text-xs font-medium text-slate-500"
+            >
               Tanggal
             </label>
             <input
               id="monitoring-filter-date"
               type="date"
               value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
+              className="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"
             />
           </div>
+
+          {/* Email / Name search */}
           <div className="flex flex-col gap-1">
-            <label htmlFor="monitoring-filter-email" className="text-xs font-medium text-slate-500">
-              Email Karyawan
+            <label
+              htmlFor="monitoring-filter-email"
+              className="text-xs font-medium text-slate-500"
+            >
+              Email / Nama
             </label>
-            <input
-              id="monitoring-filter-email"
-              type="email"
-              value={filterEmail}
-              onChange={(e) => setFilterEmail(e.target.value)}
-              placeholder="karyawan@email.com"
-              className="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
-            />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+              <input
+                id="monitoring-filter-email"
+                type="text"
+                value={filterEmail}
+                onChange={(e) => { setFilterEmail(e.target.value); setPage(1); }}
+                placeholder="Cari anggota tim..."
+                className="pl-8 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-52 text-slate-700"
+              />
+            </div>
           </div>
-          <div className="flex items-end gap-2">
+
+          {/* Blocker Status */}
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="monitoring-filter-blocker"
+              className="text-xs font-medium text-slate-500"
+            >
+              Status Blocker
+            </label>
+            <div className="relative">
+              <select
+                id="monitoring-filter-blocker"
+                value={filterBlocker}
+                onChange={(e) => { setFilterBlocker(e.target.value as BlockerFilter); setPage(1); }}
+                className="appearance-none pl-3 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 bg-white w-40"
+              >
+                <option value="all">Semua Status</option>
+                <option value="blocker">Ada Blocker</option>
+                <option value="no-blocker">Lancar</option>
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 pb-0.5">
             <button
               type="button"
               id="monitoring-reset-btn"
-              onClick={() => { setFilterDate(""); setFilterEmail(""); }}
-              className="px-3 py-2 text-sm text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              onClick={handleReset}
+              className="px-4 py-2 text-sm text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium"
             >
               Reset
             </button>
@@ -99,7 +161,7 @@ export default function MonitoringPage() {
               id="monitoring-refresh-btn"
               onClick={fetchReports}
               disabled={loading}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-60 shadow-sm"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
               Refresh
@@ -108,13 +170,18 @@ export default function MonitoringPage() {
         </div>
       </div>
 
+      {/* Error */}
       {error && (
-        <div role="alert" className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm"
+        >
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
+      {/* Loading */}
       {loading && (
         <div className="text-center py-16">
           <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -122,13 +189,18 @@ export default function MonitoringPage() {
         </div>
       )}
 
+      {/* Table + Pagination */}
       {!loading && !error && (
-        <div>
-          <p className="text-xs text-slate-400 mb-3">
-            Menampilkan <span className="font-semibold text-slate-600">{reports.length}</span> laporan
-          </p>
-          <DataTable reports={reports} />
-        </div>
+        <DataTable
+          reports={paginatedReports}
+          totalCount={filteredReports.length}
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          page={page}
+          totalPages={totalPages}
+          onPrevPage={() => setPage((p) => Math.max(1, p - 1))}
+          onNextPage={() => setPage((p) => Math.min(totalPages, p + 1))}
+        />
       )}
     </div>
   );
