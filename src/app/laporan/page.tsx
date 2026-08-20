@@ -1,10 +1,26 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import DataTable from "@/components/DataTable";
 import { DailyReport } from "@/types/report";
-import { PlusCircle, Search, RefreshCw, AlertTriangle } from "lucide-react";
+import { PlusCircle, Search, RefreshCw, AlertTriangle, CalendarDays } from "lucide-react";
 import Link from "next/link";
+
+/** Konversi yyyy-mm-dd → dd/mm/yyyy untuk tampilan */
+function isoToDisplay(iso: string): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+/** Konversi dd/mm/yyyy → yyyy-mm-dd untuk filter API */
+function displayToIso(display: string): string {
+  const parts = display.replace(/[^\d/]/g, "").split("/");
+  if (parts.length === 3 && parts[2].length === 4) {
+    return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+  }
+  return "";
+}
 
 export default function LaporanPage() {
   const [reports, setReports] = useState<DailyReport[]>([]);
@@ -12,6 +28,8 @@ export default function LaporanPage() {
   const [error, setError] = useState<string | null>(null);
   const [filterDate, setFilterDate] = useState("");
   const [filterEmail, setFilterEmail] = useState("");
+  const [displayFilterDate, setDisplayFilterDate] = useState("");
+  const hiddenDateRef = useRef<HTMLInputElement>(null);
 
   const fetchReports = useCallback(async () => {
     setLoading(true);
@@ -71,13 +89,48 @@ export default function LaporanPage() {
             <label htmlFor="filter-date" className="text-xs font-medium text-slate-500">
               Tanggal
             </label>
-            <input
-              id="filter-date"
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative flex items-center">
+              <input
+                id="filter-date"
+                type="text"
+                inputMode="numeric"
+                value={displayFilterDate}
+                onChange={(e) => {
+                  let val = e.target.value;
+                  val = val.replace(/[^\d/]/g, "");
+                  if (val.length === 2 && displayFilterDate.length === 1) val += "/";
+                  if (val.length === 5 && displayFilterDate.length === 4) val += "/";
+                  setDisplayFilterDate(val);
+                  setFilterDate(displayToIso(val));
+                }}
+                placeholder="dd/mm/yyyy"
+                maxLength={10}
+                className="px-3 py-2 pr-9 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {/* Tombol kalender */}
+              <button
+                type="button"
+                onClick={() => hiddenDateRef.current?.showPicker()}
+                className="absolute right-2.5 text-slate-400 hover:text-blue-600 transition-colors"
+                aria-label="Buka kalender"
+              >
+                <CalendarDays className="w-4 h-4" />
+              </button>
+              {/* Hidden date picker */}
+              <input
+                ref={hiddenDateRef}
+                type="date"
+                value={filterDate}
+                onChange={(e) => {
+                  const iso = e.target.value;
+                  setFilterDate(iso);
+                  setDisplayFilterDate(isoToDisplay(iso));
+                }}
+                className="absolute inset-0 opacity-0 w-0 h-0 pointer-events-none"
+                tabIndex={-1}
+                aria-hidden="true"
+              />
+            </div>
           </div>
           <div className="flex flex-col gap-1">
             <label htmlFor="filter-email" className="text-xs font-medium text-slate-500">
@@ -99,6 +152,7 @@ export default function LaporanPage() {
               onClick={() => {
                 setFilterDate("");
                 setFilterEmail("");
+                setDisplayFilterDate("");
               }}
               className="px-3 py-2 text-sm text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
             >

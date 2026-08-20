@@ -1,9 +1,25 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import DataTable from "@/components/DataTable";
 import { DailyReport } from "@/types/report";
-import { RefreshCw, AlertTriangle, Search, ChevronDown } from "lucide-react";
+import { RefreshCw, AlertTriangle, Search, ChevronDown, CalendarDays } from "lucide-react";
+
+/** Konversi yyyy-mm-dd → dd/mm/yyyy untuk tampilan */
+function isoToDisplay(iso: string): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+/** Konversi dd/mm/yyyy → yyyy-mm-dd untuk filter API */
+function displayToIso(display: string): string {
+  const parts = display.replace(/[^\d/]/g, "").split("/");
+  if (parts.length === 3 && parts[2].length === 4) {
+    return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+  }
+  return "";
+}
 
 const PAGE_SIZE = 10;
 
@@ -17,6 +33,8 @@ export default function MonitoringPage() {
   const [filterEmail, setFilterEmail] = useState("");
   const [filterBlocker, setFilterBlocker] = useState<BlockerFilter>("all");
   const [page, setPage] = useState(1);
+  const [displayFilterDate, setDisplayFilterDate] = useState("");
+  const hiddenDateRef = useRef<HTMLInputElement>(null);
 
   const fetchReports = useCallback(async () => {
     setLoading(true);
@@ -67,6 +85,7 @@ export default function MonitoringPage() {
     setFilterEmail("");
     setFilterBlocker("all");
     setPage(1);
+    setDisplayFilterDate("");
   };
 
   const rangeStart = filteredReports.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
@@ -93,13 +112,51 @@ export default function MonitoringPage() {
             >
               Tanggal
             </label>
-            <input
-              id="monitoring-filter-date"
-              type="date"
-              value={filterDate}
-              onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
-              className="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"
-            />
+            <div className="relative flex items-center">
+              <input
+                id="monitoring-filter-date"
+                type="text"
+                inputMode="numeric"
+                value={displayFilterDate}
+                onChange={(e) => {
+                  let val = e.target.value;
+                  val = val.replace(/[^\d/]/g, "");
+                  if (val.length === 2 && displayFilterDate.length === 1) val += "/";
+                  if (val.length === 5 && displayFilterDate.length === 4) val += "/";
+                  setDisplayFilterDate(val);
+                  const iso = displayToIso(val);
+                  setFilterDate(iso);
+                  setPage(1);
+                }}
+                placeholder="dd/mm/yyyy"
+                maxLength={10}
+                className="px-3 py-2 pr-9 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700"
+              />
+              {/* Tombol kalender */}
+              <button
+                type="button"
+                onClick={() => hiddenDateRef.current?.showPicker()}
+                className="absolute right-2.5 text-slate-400 hover:text-blue-600 transition-colors"
+                aria-label="Buka kalender"
+              >
+                <CalendarDays className="w-4 h-4" />
+              </button>
+              {/* Hidden date picker */}
+              <input
+                ref={hiddenDateRef}
+                type="date"
+                value={filterDate}
+                onChange={(e) => {
+                  const iso = e.target.value;
+                  setFilterDate(iso);
+                  setDisplayFilterDate(isoToDisplay(iso));
+                  setPage(1);
+                }}
+                className="absolute inset-0 opacity-0 w-0 h-0 pointer-events-none"
+                tabIndex={-1}
+                aria-hidden="true"
+              />
+            </div>
           </div>
 
           {/* Email / Name search */}
