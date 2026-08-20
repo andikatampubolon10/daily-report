@@ -9,21 +9,9 @@ import {
   AlertTriangle,
   Smile,
   ArrowLeft,
-  Printer
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-function getRoleFromEmail(email: string): string {
-  const prefix = email.split("@")[0].toLowerCase();
-  if (prefix.includes("manager")) return "Manager";
-  if (prefix.includes("admin")) return "Administrator";
-  if (prefix.includes("dev") || prefix.includes("backend")) return "Backend Developer";
-  if (prefix.includes("front") || prefix.includes("fe")) return "Frontend Developer";
-  if (prefix.includes("qa") || prefix.includes("test")) return "QA Engineer";
-  if (prefix.includes("design") || prefix.includes("ui")) return "UI/UX Designer";
-  if (prefix.includes("devops")) return "DevOps Engineer";
-  return "Team Member";
-}
 
 function getInitials(name: string): string {
   return name
@@ -106,7 +94,7 @@ export default function ReportDetailModal({ isOpen, onClose, report }: ReportDet
               </div>
               <div>
                 <p className="text-base font-bold text-slate-900">{report.name}</p>
-                <p className="text-sm text-slate-500">{getRoleFromEmail(report.email)}</p>
+                <p className="text-sm text-slate-500">{report.email}</p>
               </div>
             </div>
             <div className="text-right">
@@ -169,7 +157,7 @@ export default function ReportDetailModal({ isOpen, onClose, report }: ReportDet
                 <>
                   <div className="flex items-center gap-2 font-bold text-emerald-700">
                     <Smile className="w-4 h-4" />
-                    Tidak Ada Blocker
+                    Tidak Ada Kendala
                   </div>
                   <p className="text-emerald-700/80">
                     {report.blocker === "Tidak ada" ? "Tidak ada kendala berarti selama proses pengerjaan hari ini." : report.blocker}
@@ -191,12 +179,6 @@ export default function ReportDetailModal({ isOpen, onClose, report }: ReportDet
           </button>
           
           <div className="flex items-center gap-3">
-            <button
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
-            >
-              <Printer className="w-4 h-4" />
-              Cetak PDF
-            </button>
             <button
               className="inline-flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
               onClick={onClose}

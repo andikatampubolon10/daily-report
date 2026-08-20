@@ -121,12 +121,12 @@ export default function DashboardReportRow({ report }: DashboardReportRowProps) 
 
         <div className="w-36 shrink-0 flex justify-start">
           {blocker ? (
-            <span className="inline-flex items-center text-sm font-medium bg-red-50 text-red-600 border border-red-200 rounded-full px-3.5 py-1">
-              Ada Blocker
+            <span className="inline-flex items-center text-sm font-medium bg-red-50 text-red-600 border border-red-200 rounded-md px-3 py-1">
+              Ada Kendala
             </span>
           ) : (
-            <span className="inline-flex items-center text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-3.5 py-1">
-              Tidak Ada Blocker
+            <span className="inline-flex items-center text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md px-3 py-1">
+              Tidak Ada Kendala
             </span>
           )}
         </div>

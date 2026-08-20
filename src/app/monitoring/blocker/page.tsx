@@ -5,17 +5,16 @@ import { DailyReport } from "@/types/report";
 import { hasBlocker } from "@/lib/utils";
 import {
   AlertTriangle,
-  Download,
   Search,
   SlidersHorizontal,
   AlertCircle,
   RefreshCw,
   ServerCrash,
   CheckCircle2,
-  RotateCcw,
+  Calendar,
 } from "lucide-react";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
+import ReportDetailModal from "@/components/ReportDetailModal";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -46,42 +45,13 @@ function getAvatarColor(name: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-function formatRelativeTime(isoString: string): string {
-  const date = new Date(isoString);
-  const now = new Date();
-  const isToday =
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear();
-
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  const isYesterday =
-    date.getDate() === yesterday.getDate() &&
-    date.getMonth() === yesterday.getMonth() &&
-    date.getFullYear() === yesterday.getFullYear();
-
-  const time = date.toLocaleTimeString("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
+function formatReportDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
-
-  if (isToday) return `Hari ini, ${time}`;
-  if (isYesterday) return `Kemarin, ${time}`;
-  return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
-}
-
-/** Derive a rough "role" label from email prefix */
-function getRoleFromEmail(email: string): string {
-  const prefix = email.split("@")[0].toLowerCase();
-  if (prefix.includes("manager")) return "Manager";
-  if (prefix.includes("admin")) return "Administrator";
-  if (prefix.includes("dev") || prefix.includes("backend")) return "Backend Developer";
-  if (prefix.includes("front") || prefix.includes("fe")) return "Frontend Developer";
-  if (prefix.includes("qa") || prefix.includes("test")) return "QA Engineer";
-  if (prefix.includes("design") || prefix.includes("ui")) return "UI/UX Designer";
-  if (prefix.includes("devops")) return "DevOps Engineer";
-  return "Team Member";
 }
 
 // ─── stat card ────────────────────────────────────────────────────────────────
@@ -137,15 +107,14 @@ function SummaryCard({ label, value, subtext, variant }: SummaryCardProps) {
 
 interface BlockerRowProps {
   report: DailyReport;
-  /** Reports created today are "Perlu Perhatian"; older ones are "Sedang Ditangani" */
   isUrgent: boolean;
+  onDetail: (report: DailyReport) => void;
 }
 
-function BlockerRow({ report, isUrgent }: BlockerRowProps) {
+function BlockerRow({ report, isUrgent, onDetail }: BlockerRowProps) {
   const initials = getInitials(report.name);
   const avatarColor = getAvatarColor(report.name);
-  const role = getRoleFromEmail(report.email);
-  const time = formatRelativeTime(report.created_at);
+  const reportDate = formatReportDate(report.date);
 
   const truncate = (text: string, len: number) =>
     text.length > len ? text.slice(0, len) + "..." : text;
@@ -153,66 +122,59 @@ function BlockerRow({ report, isUrgent }: BlockerRowProps) {
   return (
     <div
       className={cn(
-        "bg-white border-y border-r border-slate-200 rounded-r-lg p-4 hover:bg-slate-50 transition-colors",
-        "flex flex-col lg:flex-row lg:items-center justify-between gap-4",
+        "bg-white border-y border-r border-slate-200 rounded-r-lg px-5 py-4 hover:bg-slate-50 transition-colors",
+        "flex items-center gap-5",
         isUrgent ? "border-l-4 border-l-red-500" : "border-l border-l-slate-200 rounded-l-lg"
       )}
     >
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-        {/* User info */}
-        <div className="md:col-span-3 flex items-center gap-3">
-          <div
-            className={cn(
-              "w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0",
-              avatarColor
-            )}
-            aria-label={report.name}
-          >
-            {initials}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-900 truncate">
-              {report.name}
-            </p>
-            <p className="text-xs text-slate-400 truncate">{role}</p>
-          </div>
-        </div>
+      {/* Avatar */}
+      <div
+        className={cn(
+          "w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0",
+          avatarColor
+        )}
+        aria-label={report.name}
+      >
+        {initials}
+      </div>
 
-        {/* Blocker content */}
-        <div className="md:col-span-6 flex flex-col gap-1">
-          <p className="text-sm font-medium text-slate-900 line-clamp-1">
-            {truncate(report.blocker, 80)}
-          </p>
-          <p className="text-xs text-slate-500 line-clamp-1">
-            {truncate(report.today_work, 80)}
-          </p>
-        </div>
-
-        {/* Time + status badge */}
-        <div className="md:col-span-3 flex flex-col items-start md:items-end gap-1.5">
-          <span className="text-xs text-slate-400">{time}</span>
-          {isUrgent ? (
-            <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 border border-red-200 text-xs font-medium px-2.5 py-1 rounded-full">
-              <AlertCircle className="w-3 h-3" aria-hidden="true" />
-              Perlu Perhatian
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 border border-blue-200 text-xs font-medium px-2.5 py-1 rounded-full">
-              <RotateCcw className="w-3 h-3" aria-hidden="true" />
-              Sedang Ditangani
-            </span>
-          )}
+      {/* Nama + tanggal */}
+      <div className="w-52 shrink-0">
+        <p className="text-sm font-semibold text-slate-900 truncate">
+          {report.name}
+        </p>
+        <div className="flex items-center gap-1 mt-0.5 text-xs text-slate-400">
+          <Calendar className="w-3 h-3" />
+          <span>{reportDate}</span>
         </div>
       </div>
 
-      {/* Detail link */}
-      <div className="flex-shrink-0">
-        <Link
-          href={`/laporan/${report.id}`}
+      {/* Teks blocker */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-slate-700 truncate">
+          {truncate(report.blocker, 120)}
+        </p>
+      </div>
+
+      {/* Badge urgent (hanya Perlu Perhatian, tanpa Sedang Ditangani) */}
+      <div className="shrink-0">
+        {isUrgent && (
+          <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 border border-red-200 text-xs font-medium px-2.5 py-1 rounded-md">
+            <AlertCircle className="w-3 h-3" aria-hidden="true" />
+            Perlu Perhatian
+          </span>
+        )}
+      </div>
+
+      {/* Tombol Detail */}
+      <div className="shrink-0">
+        <button
+          type="button"
+          onClick={() => onDetail(report)}
           className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline whitespace-nowrap"
         >
           Detail →
-        </Link>
+        </button>
       </div>
     </div>
   );
@@ -225,6 +187,7 @@ export default function BlockerMonitoringPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [selectedReport, setSelectedReport] = useState<DailyReport | null>(null);
 
   async function fetchBlockers() {
     setLoading(true);
@@ -253,7 +216,6 @@ export default function BlockerMonitoringPage() {
     fetchBlockers();
   }, []);
 
-  // Determine today's date string for comparison
   const todayStr = new Date().toISOString().split("T")[0];
 
   const todayBlockers = useMemo(
@@ -261,10 +223,8 @@ export default function BlockerMonitoringPage() {
     [allBlockers, todayStr]
   );
 
-  // "Belum ditangani" = reported today (most urgent)
   const unhandledCount = todayBlockers.length;
 
-  // Search filter
   const filtered = useMemo(() => {
     if (!search.trim()) return allBlockers;
     const q = search.toLowerCase();
@@ -275,23 +235,6 @@ export default function BlockerMonitoringPage() {
         r.email.toLowerCase().includes(q)
     );
   }, [allBlockers, search]);
-
-  // Export as CSV
-  function handleExport() {
-    if (filtered.length === 0) return;
-    const header = ["Tanggal", "Nama", "Email", "Blocker"].join(",");
-    const rows = filtered.map((r) =>
-      [r.date, `"${r.name}"`, r.email, `"${r.blocker.replace(/"/g, '""')}"`].join(",")
-    );
-    const csv = [header, ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `blocker-report-${todayStr}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
 
   return (
     <div className="space-y-8">
@@ -311,16 +254,6 @@ export default function BlockerMonitoringPage() {
             Pantau kendala yang dilaporkan oleh anggota tim.
           </p>
         </div>
-        <button
-          type="button"
-          id="blocker-export-btn"
-          onClick={handleExport}
-          disabled={loading || filtered.length === 0}
-          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 shrink-0"
-        >
-          <Download className="w-4 h-4" />
-          Export Data
-        </button>
       </div>
 
       {/* ── Error ── */}
@@ -407,20 +340,22 @@ export default function BlockerMonitoringPage() {
                       className="pl-8 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-60 text-slate-700"
                     />
                   </div>
-                  {/* Refresh */}
+                  {/* Filter button */}
                   <button
                     type="button"
-                    id="blocker-refresh-btn"
+                    id="blocker-filter-btn"
                     onClick={fetchBlockers}
                     disabled={loading}
                     className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
-                    aria-label="Refresh data"
+                    aria-label="Filter data"
                   >
                     <SlidersHorizontal className="w-3.5 h-3.5" />
                     Filter
                   </button>
+                  {/* Refresh */}
                   <button
                     type="button"
+                    id="blocker-refresh-btn"
                     onClick={fetchBlockers}
                     disabled={loading}
                     className="p-2 text-slate-500 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
@@ -452,6 +387,7 @@ export default function BlockerMonitoringPage() {
                         key={report.id}
                         report={report}
                         isUrgent={isUrgent}
+                        onDetail={setSelectedReport}
                       />
                     );
                   })}
@@ -461,6 +397,13 @@ export default function BlockerMonitoringPage() {
           )}
         </>
       )}
+
+      {/* ── Detail Modal ── */}
+      <ReportDetailModal
+        isOpen={!!selectedReport}
+        onClose={() => setSelectedReport(null)}
+        report={selectedReport}
+      />
     </div>
   );
 }

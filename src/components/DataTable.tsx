@@ -66,7 +66,7 @@ export default function DataTable({
                 Pekerjaan Hari Ini
               </th>
               <th className="text-left px-5 py-4 text-sm font-semibold text-slate-700 whitespace-nowrap">
-                Blocker
+                Kendala
               </th>
               <th className="text-right px-5 py-4 text-sm font-semibold text-slate-700 whitespace-nowrap">
                 Aksi
@@ -101,25 +101,15 @@ export default function DataTable({
                     <p className="truncate">{report.today_work}</p>
                   </td>
 
-                  {/* Blocker — dot + label */}
+                  {/* Blocker — badge persegi panjang */}
                   <td className="px-5 py-3.5">
                     {blocker ? (
-                      <span className="inline-flex items-center gap-1.5 text-sm">
-                        <span
-                          className="w-2 h-2 rounded-full bg-red-500 shrink-0"
-                          aria-hidden="true"
-                        />
-                        <span className="text-red-600 font-medium">
-                          Ada Blocker
-                        </span>
+                      <span className="inline-flex items-center text-sm font-medium bg-red-50 text-red-600 border border-red-200 rounded-md px-3 py-1">
+                        Ada Kendala
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-sm">
-                        <span
-                          className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"
-                          aria-hidden="true"
-                        />
-                        <span className="text-slate-600">Lancar</span>
+                      <span className="inline-flex items-center text-sm font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md px-3 py-1">
+                        Tidak Ada Kendala
                       </span>
                     )}
                   </td>
